@@ -51,4 +51,39 @@ func main() {
 		fmt.Println(states[i])
 	}
 
+	// # 7
+	xs1 := []string{"James", "Bond"}
+	xs2 := []string{"Value", "Two"}
+	fmt.Println(xs1)
+	fmt.Println(xs2)
+
+	xs3 := [][]string{xs1, xs2}
+	fmt.Println(xs3)
+
+	for _, v := range xs3 {
+		fmt.Println(v)
+		for _, j := range v {
+			fmt.Println(j)
+		}
+	}
+
+	// #8 - 10
+	mp := map[string][]string{
+		"bond_james": []string{"one", "two"},
+	}
+	// #9 is adding records like this
+	mp["guy_bad"] = []string{"three", "four"}
+	mp["guy_good"] = []string{"five", "six"}
+
+	// #10 delete a record
+	delete(mp, "guy_bad")
+
+	for _, v := range mp {
+		for j, v2 := range v {
+			fmt.Println(j, v2)
+		}
+	}
+
+	// 10
+
 }
