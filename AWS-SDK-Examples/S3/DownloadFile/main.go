@@ -52,8 +52,8 @@ func (pw *progressWriter) WriteAt(p []byte, off int64) (int, error) {
 }
 
 func main() {
-	bucket := "slm-test-bucket-transactional"
-	key := "brooklinen_test/brooklinen_txfile_11.1.2019-1.5.20.csv"
+	bucket := ""
+	key := ""
 
 	filename := parseFilename(key)
 
