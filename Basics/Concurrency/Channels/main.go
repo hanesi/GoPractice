@@ -13,18 +13,23 @@ func main() {
 	fmt.Println("almost done")
 }
 
-func generate() <-chan []string] {
-	c := make(chan []string)
+func generate() <-chan []int {
+	c := make(chan []int)
 	go func() {
-		i := []string{"one","two","three"}
-    c <- i
-		close(c)
+		defer close(c)
+		sl := []int{1, 2, 3, 4}
+		for i := 0; i < len(sl); i++ {
+			sl[i] += 5
+			newSl := make([]int, len(sl))
+			copy(newSl, sl)
+			c <- newSl
+		}
 	}()
 
 	return c
 }
 
-func rec(c <-chan []string) {
+func rec(c <-chan []int) {
 	for v := range c {
 		fmt.Println(v)
 	}
