@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 )
 
 var c chan int
@@ -19,7 +20,7 @@ func generate() <-chan []int {
 		defer close(c)
 		sl := []int{1, 2, 3, 4}
 		for i := 0; i < len(sl); i++ {
-			sl[i] += 5
+			sl[i] += rand.Intn(100)
 			newSl := make([]int, len(sl))
 			copy(newSl, sl)
 			c <- newSl
