@@ -33,7 +33,7 @@ func main() {
 	}
 	defer db.Close()
 
-	sqlStatement := "select * from StreamingLog limit 10"
+	sqlStatement := "select * from StreamingLog limit 15"
 
 	rows, err := db.Query(sqlStatement)
 	if err != nil {
@@ -70,7 +70,7 @@ func main() {
 			}
 		}
 
-		fmt.Printf("%#v\n", result)
+		fmt.Printf("%#v\n", result[3])
 	}
 
 }
