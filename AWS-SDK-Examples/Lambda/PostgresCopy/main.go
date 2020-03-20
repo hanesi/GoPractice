@@ -27,7 +27,9 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 	if err != nil {
 		return events.APIGatewayProxyResponse{}, err
 	}
+	fmt.Println("Recieved event", request)
 	msgBody := request.Records[0].Body
+	fmt.Println("Processing file", msgBody)
 	bucket := strings.Split(msgBody, ",")[0]
 	key := strings.Split(msgBody, ",")[1]
 	table := strings.Split(key, "/")[0]
