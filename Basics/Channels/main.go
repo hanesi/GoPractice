@@ -5,6 +5,7 @@ import "fmt"
 func main() {
 	c := make(chan int)
 	done := make(chan bool)
+
 	// One go routine sending to a channel
 	// go func() {
 	// 	for i := 0; i < 25; i++ {
