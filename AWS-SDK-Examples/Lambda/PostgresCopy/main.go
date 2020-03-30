@@ -77,10 +77,9 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 			fmt.Println("Failed to run query", err)
 			return events.APIGatewayProxyResponse{Body: "Query Failed To Run", StatusCode: 400}, err
 		}
-		fmt.Println("Query executed!")
-		return events.APIGatewayProxyResponse{Body: string(body), StatusCode: 200}, nil
 	}
-
+	fmt.Println("Query executed!")
+	return events.APIGatewayProxyResponse{Body: string(body), StatusCode: 200}, nil
 }
 
 func main() {
