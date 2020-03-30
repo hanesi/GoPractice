@@ -28,11 +28,6 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		return events.APIGatewayProxyResponse{}, err
 	}
 	fmt.Println("Recieved event", request)
-	msgBody := request.Records[0].Body
-	fmt.Println("Processing file", msgBody)
-	bucket := strings.Split(msgBody, ",")[0]
-	key := strings.Split(msgBody, ",")[1]
-	table := strings.Split(key, "/")[0]
 
 	host := os.Getenv("PGhost")
 	port := 5432
@@ -44,39 +39,48 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		"password=%s dbname=%s sslmode=disable",
 		port, host, user, password, dbname)
 
-	db, err := sql.Open("postgres", pgConString)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Connected Successfully")
-	defer db.Close()
+	for i := range request.Records {
+		msgBody := request.Records[i].Body
+		fmt.Println("Processing file", msgBody)
+		bucket := strings.Split(msgBody, ",")[0]
+		key := strings.Split(msgBody, ",")[1]
+		table := strings.Split(key, "/")[0]
 
-	sqlStatement := `
-	          select aws_s3.table_import_from_s3(
-	          '%s',
-	          '',
-	          '(format csv)',
-	          '%s',
-	          '%s',
-	          'us-east-1'
-	          )
-	          ;`
-	switch {
-	case table == "MailFiles":
-		sqlStatement = fmt.Sprintf(sqlStatement, "printer_mailings", bucket, key)
-	case table == "TX-Files":
-		sqlStatement = fmt.Sprintf(sqlStatement, "orders", bucket, key)
-	case table == "Holdouts":
-		sqlStatement = fmt.Sprintf(sqlStatement, "holdouts", bucket, key)
+		db, err := sql.Open("postgres", pgConString)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("Connected Successfully")
+		defer db.Close()
+
+		sqlStatement := `
+							select aws_s3.table_import_from_s3(
+							'%s',
+							'',
+							'(format csv)',
+							'%s',
+							'%s',
+							'us-east-1'
+							)
+							;`
+		switch {
+		case table == "MailFiles":
+			sqlStatement = fmt.Sprintf(sqlStatement, "printer_mailings", bucket, key)
+		case table == "TX-Files":
+			sqlStatement = fmt.Sprintf(sqlStatement, "orders", bucket, key)
+		case table == "Holdouts":
+			sqlStatement = fmt.Sprintf(sqlStatement, "holdouts", bucket, key)
+		}
+
+		_, err = db.Query(sqlStatement)
+		if err != nil {
+			fmt.Println("Failed to run query", err)
+			return events.APIGatewayProxyResponse{Body: "Query Failed To Run", StatusCode: 400}, err
+		}
+		fmt.Println("Query executed!")
+		return events.APIGatewayProxyResponse{Body: string(body), StatusCode: 200}, nil
 	}
 
-	_, err = db.Query(sqlStatement)
-	if err != nil {
-		fmt.Println("Failed to run query", err)
-		return events.APIGatewayProxyResponse{Body: "Query Failed To Run", StatusCode: 400}, err
-	}
-	fmt.Println("Query executed!")
-	return events.APIGatewayProxyResponse{Body: string(body), StatusCode: 200}, nil
 }
 
 func main() {
