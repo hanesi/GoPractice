@@ -13,11 +13,10 @@ func singleNumber(nums []int) int {
 		ctMap[v]++
 	}
 
-	var retVal int
 	for k, v := range ctMap {
 		if v == 1 {
-			retVal = k
+			return k
 		}
 	}
-	return retVal
+	return -1
 }
