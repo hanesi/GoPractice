@@ -19,20 +19,26 @@ func main() {
 func maxSubArray(nums []int) int {
 	runningTotal := 0
 	maxFound := 0
-	fmt.Println(nums)
+
+	// If there's only one number, return it
 	if len(nums) == 1 {
 		return nums[0]
 	}
+
+	// Add current value to running total, updating maxFound when necessary
 	for _, v := range nums {
 		if runningTotal+v > 0 {
 			runningTotal += v
 			if runningTotal > maxFound {
 				maxFound = runningTotal
 			}
+			// If runningTotal + v > 0, reset the running total
 		} else {
 			runningTotal = 0
 		}
 	}
+
+	// If all numbers are negative, return the max negative value
 	if maxFound == 0 {
 		maxVal := nums[0]
 		for _, v := range nums {
