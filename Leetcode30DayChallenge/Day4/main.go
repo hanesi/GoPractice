@@ -21,19 +21,13 @@ func main() {
 }
 
 func moveZeroes(nums []int) []int {
-	counter := 0
-
 	// Main "gotcha" here is to iterate backwards through the list
 	// If you iterate forwards and remove elements, your indexing gets screwy
 	for i := len(nums) - 1; i >= 0; i-- {
 		if nums[i] == 0 {
 			nums = remove(nums, i)
-			counter++
+			nums = append(nums, 0)
 		}
-	}
-
-	for i := 0; i < counter; i++ {
-		nums = append(nums, 0)
 	}
 	return nums
 }
