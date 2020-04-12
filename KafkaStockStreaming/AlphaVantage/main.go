@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -29,6 +30,12 @@ type TickerData struct {
 	ChangePercent    string `json:"10. change percent"`
 }
 
+var tickerSlice = []string{
+	"AMRX", "UBER", "STM", "AMD",
+	"AUY", "SNAP", "WORK", "APTO",
+	"INO", "XAIR", "SAVE",
+}
+
 func init() {
 	// loads values from .env into the system
 	if err := godotenv.Load(); err != nil {
@@ -40,28 +47,41 @@ func init() {
 func main() {
 	// Store the PATH environment variable in a variable
 	AVkey, _ := os.LookupEnv("AVkey")
+	c := make(chan string)
 
-	url := (buildQueryURL("GOOG", AVkey))
+	go func() {
+		for i := 0; i < len(tickerSlice); i++ {
+			c <- buildQueryURL(tickerSlice[i], AVkey)
+		}
+		close(c)
+	}()
 
-	resp, err := http.Get(url)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err)
-	}
-	bodyString := fmt.Sprintf("%s", body)
+	for n := range c {
+		resp, err := http.Get(n)
+		if err != nil {
+			fmt.Println(err)
+		}
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println(err)
+		}
+		bodyString := fmt.Sprintf("%s", body)
 
-	var data StockData
-	decoder := json.NewDecoder(strings.NewReader(bodyString))
-	err = decoder.Decode(&data)
-	if err != nil {
-		fmt.Println("twas an error")
-		// return
+		var data StockData
+		decoder := json.NewDecoder(strings.NewReader(bodyString))
+		err = decoder.Decode(&data)
+		if err != nil {
+			fmt.Println("twas an error")
+			// return
+		}
+		fmt.Println(data.GlobalQuote)
+
+		// Alpha Vantage limits users to 1 request per 18 seconds
+		fmt.Println("Sleeping for 18 seconds")
+		time.Sleep(18 * time.Second)
 	}
-	fmt.Println(data)
+
 }
 
 func buildQueryURL(s, av string) string {
