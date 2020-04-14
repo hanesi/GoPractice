@@ -44,7 +44,7 @@ type LinearRing struct {
 func main() {
 
 	// Open our xmlFile
-	xmlFile, err := os.Open("/Users/ianhanes/Desktop/General/KMLs/all-zips/zip00601.kml")
+	xmlFile, err := os.Open("/Users/ianhanes/Desktop/General/KMLs/all-zips/zip77345.kml")
 	// if we os.Open returns an error then handle it
 	if err != nil {
 		fmt.Println(err)
