@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
+	"strings"
+
+	"github.com/twpayne/go-geom"
 )
 
 // Rat's nest of a KML generated from this website:
@@ -58,5 +62,33 @@ func main() {
 
 	var data Kml
 	xml.Unmarshal(byteValue, &data)
-	fmt.Println(data.Document.Placemark.Polygon.OuterBoundaryIs.LinearRing.Coordinates)
+	polyLine := data.Document.Placemark.Polygon.OuterBoundaryIs.LinearRing.Coordinates
+	polyList := strings.Split(polyLine, ",0.0 -")
+	coordList := [][]geom.Coord{}
+	for _, v := range polyList[:len(polyList)-2] {
+		v = strings.Replace(v, "-", "", -1)
+		//v = strings.Replace(v, " 0.0", "", -1)
+		coordList = append(coordList, coordStringToFloat(v))
+	}
+
+	var q geom.Layout = 1
+	shape := geom.NewPolygon(q).MustSetCoords(coordList)
+	f := *shape
+	fmt.Println(f.Area())
+}
+
+func coordStringToFloat(coord string) []geom.Coord {
+	retArray := []float64{}
+	whatever := []geom.Coord{}
+	coords := strings.Split(coord, ",")
+	for _, v := range coords {
+		num, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			break
+		}
+		retArray = append(retArray, num)
+	}
+	x := geom.Coord(retArray)
+	whatever = append(whatever, x)
+	return whatever
 }
