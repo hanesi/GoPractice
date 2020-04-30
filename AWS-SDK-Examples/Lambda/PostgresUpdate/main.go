@@ -79,7 +79,12 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 				body.UploadMethod,
 				body.FileType,
 			)
-
+		case queryMethod == "update":
+			sqlStatement = fmt.Sprintf(`UPDATE files SET status = %s, updated_at = %s where filename = %s;`,
+				body.Status,
+				body.UpdatedAt,
+				body.Filename,
+			)
 		}
 		fmt.Println(sqlStatement)
 		_, err = db.Query(sqlStatement)
