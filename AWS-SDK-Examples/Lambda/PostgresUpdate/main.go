@@ -68,8 +68,8 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		fmt.Println(body)
 
 		var sqlStatement string
-		switch {
-		case queryMethod == "insert":
+		switch queryMethod {
+		case "insert":
 			sqlStatement = fmt.Sprintf(`INSERT INTO files VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s');`,
 				body.Filename,
 				body.PrinterName,
@@ -79,8 +79,8 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 				body.UploadMethod,
 				body.FileType,
 			)
-		case queryMethod == "update":
-			sqlStatement = fmt.Sprintf(`UPDATE files SET status = %s, updated_at = %s where filename = %s;`,
+		case "update", "update error":
+			sqlStatement = fmt.Sprintf(`UPDATE files SET status = '%s', updated_at = '%s' where filename = '%s';`,
 				body.Status,
 				body.UpdatedAt,
 				body.Filename,
