@@ -67,6 +67,22 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		fmt.Println(queryMethod)
 		fmt.Println(body)
 
+		var sqlStatement string
+		switch {
+		case queryMethod == "insert":
+			sqlStatement = fmt.Sprintf(`INSERT INTO files VALUES
+         (%s, %s, %s, %s, %s, %s, %s)`,
+				body.Filename,
+				body.PrinterName,
+				body.CreatedAt,
+				body.UpdatedAt,
+				body.Status,
+				body.UploadMethod,
+				body.FileType,
+			)
+
+		}
+		fmt.Println(sqlStatement)
 		// 	sqlStatement := `
 		// 						select aws_s3.table_import_from_s3(
 		// 						'%s',
@@ -77,14 +93,6 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		// 						'us-east-1'
 		// 						)
 		// 						;`
-		// 	switch {
-		// 	case table == "MailFiles":
-		// 		sqlStatement = fmt.Sprintf(sqlStatement, "printer_mailings", bucket, key)
-		// 	case table == "TX-Files":
-		// 		sqlStatement = fmt.Sprintf(sqlStatement, "orders", bucket, key)
-		// 	case table == "Holdouts":
-		// 		sqlStatement = fmt.Sprintf(sqlStatement, "holdouts", bucket, key)
-		// 	}
 		//
 		// 	_, err = db.Query(sqlStatement)
 		// 	if err != nil {
