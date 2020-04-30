@@ -70,8 +70,7 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		var sqlStatement string
 		switch {
 		case queryMethod == "insert":
-			sqlStatement = fmt.Sprintf(`INSERT INTO files VALUES
-         (%s, %s, %s, %s, %s, %s, %s)`,
+			sqlStatement = fmt.Sprintf(`INSERT INTO files VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s');`,
 				body.Filename,
 				body.PrinterName,
 				body.CreatedAt,
