@@ -18,6 +18,16 @@ type response struct {
 	UTC time.Time `json:"utc"`
 }
 
+type message struct {
+	Filename     string `json:"filename"`
+	PrinterName  string `json:"printer_name"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+	Status       string `json:"status"`
+	UploadMethod string `json:"upload_method"`
+	FileType     string `json:"file_type"`
+}
+
 func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGatewayProxyResponse, error) {
 	now := time.Now()
 	resp := &response{
@@ -51,8 +61,11 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		}
 		fmt.Println("Connected Successfully")
 		defer db.Close()
+
+		body := message{}
+		json.Unmarshal([]byte(fieldDict), &body)
 		fmt.Println(queryMethod)
-		fmt.Println(fieldDict)
+		fmt.Println(body)
 
 		// 	sqlStatement := `
 		// 						select aws_s3.table_import_from_s3(
