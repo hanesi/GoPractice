@@ -83,22 +83,11 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 
 		}
 		fmt.Println(sqlStatement)
-		// 	sqlStatement := `
-		// 						select aws_s3.table_import_from_s3(
-		// 						'%s',
-		// 						'',
-		// 						'(format csv)',
-		// 						'%s',
-		// 						'%s',
-		// 						'us-east-1'
-		// 						)
-		// 						;`
-		//
-		// 	_, err = db.Query(sqlStatement)
-		// 	if err != nil {
-		// 		fmt.Println("Failed to run query", err)
-		// 		return events.APIGatewayProxyResponse{Body: "Query Failed To Run", StatusCode: 400}, err
-		// 	}
+		_, err = db.Query(sqlStatement)
+		if err != nil {
+			fmt.Println("Failed to run query", err)
+			return events.APIGatewayProxyResponse{Body: "Query Failed To Run", StatusCode: 400}, err
+		}
 	}
 	fmt.Println("Query executed!")
 	return events.APIGatewayProxyResponse{Body: string(body), StatusCode: 200}, nil
