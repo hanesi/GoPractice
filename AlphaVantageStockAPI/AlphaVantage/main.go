@@ -10,6 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/joho/godotenv"
 )
 
@@ -30,10 +33,17 @@ type TickerData struct {
 	ChangePercent    string `json:"10. change percent"`
 }
 
+type StockInfo []struct {
+	Ticker         string `json:"ticker"`
+	BoughtPrice    string `json:"boughtPrice"`
+	NumberOfShares string `json:"numberOfShares"`
+}
+
 var tickerSlice = []string{
-	"AMRX", "UBER", "STM", "AMD",
-	"AUY", "SNAP", "WORK", "APTO",
-	"INO", "XAIR", "SAVE",
+	"AMRX",
+	// "UBER", "STM", "AMD",
+	// "AUY", "SNAP", "WORK", "APTO",
+	// "INO", "XAIR", "SAVE",
 }
 
 func init() {
@@ -46,7 +56,44 @@ func init() {
 
 func main() {
 	// Store the PATH environment variable in a variable
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String("us-east-1")},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	s3Client := s3.New(sess)
+	bucket := "ian-test-bucket-go-python"
+	key := "StockInfo.json"
+
 	AVkey, _ := os.LookupEnv("AVkey")
+
+	requestInput := &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}
+
+	result, err := s3Client.GetObject(requestInput)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer result.Body.Close()
+	body1, err := ioutil.ReadAll(result.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+	bodyString1 := fmt.Sprintf("%s", body1)
+
+	var s3data StockInfo
+	decoder := json.NewDecoder(strings.NewReader(bodyString1))
+	err = decoder.Decode(&s3data)
+	if err != nil {
+		fmt.Println("twas an error")
+	}
+
+	fmt.Println(s3data)
+
 	c := make(chan string)
 
 	go func() {

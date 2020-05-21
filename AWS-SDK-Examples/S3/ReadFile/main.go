@@ -25,7 +25,7 @@ func main() {
 	}
 
 	s3Client := s3.New(sess)
-	bucket := "slm-ian-test"
+	bucket := "ian-test-bucket-go-python"
 
 	//files := []string
 	input := &s3.ListObjectsV2Input{
@@ -37,5 +37,6 @@ func main() {
 		fmt.Println(err)
 	}
 	key := result.Contents[0].Key
+	fmt.Println(result)
 	fmt.Println(*key)
 }
