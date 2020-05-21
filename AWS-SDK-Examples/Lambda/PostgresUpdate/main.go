@@ -19,13 +19,16 @@ type response struct {
 }
 
 type message struct {
-	Filename     string `json:"filename"`
-	PrinterName  string `json:"printer_name"`
-	CreatedAt    string `json:"created_at"`
-	UpdatedAt    string `json:"updated_at"`
-	Status       string `json:"status"`
-	UploadMethod string `json:"upload_method"`
-	FileType     string `json:"file_type"`
+	ID             string `json:"id"`
+	Filename       string `json:"filename"`
+	Status         string `json:"status"`
+	UploadMethod   string `json:"upload_method"`
+	FileType       string `json:"file_type"`
+	PrinterName    string `json:"printer_name"`
+	PrintJobNumber string `json:"print_job_number"`
+	ClientSlug     string `json:"client_slug"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
 }
 
 func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGatewayProxyResponse, error) {
@@ -70,17 +73,20 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		var sqlStatement string
 		switch queryMethod {
 		case "insert":
-			sqlStatement = fmt.Sprintf(`INSERT INTO files VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s');`,
+			sqlStatement = fmt.Sprintf(`INSERT INTO slm_files VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s');`,
+				body.ID,
 				body.Filename,
-				body.PrinterName,
-				body.CreatedAt,
-				body.UpdatedAt,
 				body.Status,
 				body.UploadMethod,
 				body.FileType,
+				body.PrinterName,
+				body.PrintJobNumber,
+				body.ClientSlug,
+				body.CreatedAt,
+				body.UpdatedAt,
 			)
 		case "update", "update error":
-			sqlStatement = fmt.Sprintf(`UPDATE files SET status = '%s', updated_at = '%s' where filename = '%s';`,
+			sqlStatement = fmt.Sprintf(`UPDATE slm_files SET status = '%s', updated_at = '%s' where filename = '%s';`,
 				body.Status,
 				body.UpdatedAt,
 				body.Filename,
