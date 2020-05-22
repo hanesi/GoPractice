@@ -91,6 +91,14 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 				body.UpdatedAt,
 				body.Filename,
 			)
+		case "update_copper":
+			sqlStatement = fmt.Sprintf(`UPDATE slm_files SET status = '%s', updated_at = '%s', print_job_number = '%s', client_slug = '%s' where filename = '%s';`,
+				body.Status,
+				body.UpdatedAt,
+				body.PrintJobNumber,
+				body.ClientSlug,
+				body.Filename,
+			)
 		}
 		fmt.Println(sqlStatement)
 		_, err = db.Query(sqlStatement)
