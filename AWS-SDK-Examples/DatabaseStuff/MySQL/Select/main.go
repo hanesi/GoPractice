@@ -10,6 +10,20 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type streamRow struct {
+	playedAt         string
+	albumType        string
+	albumName        string
+	releaseDate      string
+	albumTotalTracks int
+	albumTrackNumber int
+	artist           string
+	trackName        string
+	trackPopularity  int
+	trackDuration    int
+	trackIsLocal     string
+}
+
 func init() {
 	if err := godotenv.Load(); err != nil {
 		log.Print("No .env file found")
@@ -33,7 +47,7 @@ func main() {
 	}
 	defer db.Close()
 
-	sqlStatement := "select * from StreamingLog limit 15"
+	sqlStatement := "select * from StreamingLog where `track.duration_ms` is not null limit 15;"
 
 	rows, err := db.Query(sqlStatement)
 	if err != nil {
@@ -41,36 +55,18 @@ func main() {
 		return
 	}
 
-	cols, err := rows.Columns()
-	if err != nil {
-		fmt.Println("Failed to get columns", err)
-		return
-	}
-	// Result is your slice string.
-	rawResult := make([][]byte, len(cols))
-	result := make([]string, len(cols))
-
-	dest := make([]interface{}, len(cols)) // A temporary interface{} slice
-	for i, _ := range rawResult {
-		dest[i] = &rawResult[i] // Put pointers to each string in the interface slice
-	}
-
+	rowSlice := []streamRow{}
 	for rows.Next() {
-		err = rows.Scan(dest...)
-		if err != nil {
-			fmt.Println("Failed to scan row", err)
-			return
-		}
+		var row streamRow
 
-		for i, raw := range rawResult {
-			if raw == nil {
-				result[i] = "\\N"
-			} else {
-				result[i] = string(raw)
-			}
+		if err := rows.Scan(&row.playedAt, &row.albumType, &row.albumName, &row.releaseDate, &row.albumTotalTracks, &row.albumTrackNumber, &row.artist, &row.trackName, &row.trackPopularity, &row.trackDuration, &row.trackIsLocal); err != nil {
+			log.Fatal(err)
 		}
+		rowSlice = append(rowSlice, row)
+	}
 
-		fmt.Printf("%#v\n", result[3])
+	for _, v := range rowSlice {
+		fmt.Println(v)
 	}
 
 }
