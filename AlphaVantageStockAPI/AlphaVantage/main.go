@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/joho/godotenv"
 )
 
@@ -56,7 +57,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
+	fmt.Printf("%T\n", sess)
 	s3Client := s3.New(sess)
 	bucket := "ian-test-bucket-go-python"
 	key := "StockInfo.json"
@@ -87,7 +88,7 @@ func main() {
 	}
 
 	for _, v := range s3data {
-		dataGrabber(v.Ticker, v.BoughtPrice, v.NumberOfShares, AVkey)
+		dataGrabber(v.Ticker, v.BoughtPrice, v.NumberOfShares, AVkey, sess)
 		// Alpha Vantage limits users to 5 requests per minute (1 per 18 seconds)
 		fmt.Println("Sleeping for 18 seconds")
 		time.Sleep(18 * time.Second)
@@ -99,7 +100,7 @@ func buildQueryURL(s, av string) string {
 	return fmt.Sprintf("https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=%s&apikey=%s", s, av)
 }
 
-func dataGrabber(ticker, boughtprice, numshares, av string) {
+func dataGrabber(ticker, boughtprice, numshares, av string, awsSession *session.Session) {
 	queryString := buildQueryURL(ticker, av)
 	numShares, _ := strconv.ParseFloat(numshares, 32)
 	boughtPrice, _ := strconv.ParseFloat(boughtprice, 32)
@@ -126,9 +127,24 @@ func dataGrabber(ticker, boughtprice, numshares, av string) {
 	price, _ := strconv.ParseFloat(data.GlobalQuote.Price, 32)
 	boughtEquity := numShares * boughtPrice
 	currentEquity := numShares * price
+	profitMargin := currentEquity / boughtEquity
 
-	if currentEquity/boughtEquity > 1.5 {
-		fmt.Println("SELLLLLLLLL")
+	if profitMargin > 1.5 {
+		client := sns.New(awsSession)
+		msg := fmt.Sprintf("Sell %s, profit margin is %v", ticker, profitMargin)
+		arn, _ := os.LookupEnv("SNSARN")
+		input := &sns.PublishInput{
+			Subject:  aws.String(fmt.Sprintf("Time To Sell %s", ticker)),
+			Message:  aws.String(msg),
+			TopicArn: aws.String(arn),
+		}
+
+		result, err := client.Publish(input)
+		if err != nil {
+			fmt.Println("Publish error:", err)
+			return
+		}
+		fmt.Println(result)
 	} else {
 		fmt.Println("Stock", ticker, "ain't there yet")
 	}
