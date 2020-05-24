@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -37,13 +38,6 @@ type StockInfo []struct {
 	Ticker         string `json:"ticker"`
 	BoughtPrice    string `json:"boughtPrice"`
 	NumberOfShares string `json:"numberOfShares"`
-}
-
-var tickerSlice = []string{
-	"AMRX",
-	// "UBER", "STM", "AMD",
-	// "AUY", "SNAP", "WORK", "APTO",
-	// "INO", "XAIR", "SAVE",
 }
 
 func init() {
@@ -92,38 +86,8 @@ func main() {
 		fmt.Println("twas an error")
 	}
 
-	fmt.Println(s3data)
-
-	c := make(chan string)
-
-	go func() {
-		for i := 0; i < len(tickerSlice); i++ {
-			c <- buildQueryURL(tickerSlice[i], AVkey)
-		}
-		close(c)
-	}()
-
-	for n := range c {
-		resp, err := http.Get(n)
-		if err != nil {
-			fmt.Println(err)
-		}
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			fmt.Println(err)
-		}
-		bodyString := fmt.Sprintf("%s", body)
-
-		var data StockData
-		decoder := json.NewDecoder(strings.NewReader(bodyString))
-		err = decoder.Decode(&data)
-		if err != nil {
-			fmt.Println("twas an error")
-			// return
-		}
-		fmt.Println(data.GlobalQuote)
-
+	for _, v := range s3data {
+		dataGrabber(v.Ticker, v.BoughtPrice, v.NumberOfShares, AVkey)
 		// Alpha Vantage limits users to 1 request per 18 seconds
 		fmt.Println("Sleeping for 18 seconds")
 		time.Sleep(18 * time.Second)
@@ -133,4 +97,39 @@ func main() {
 
 func buildQueryURL(s, av string) string {
 	return fmt.Sprintf("https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=%s&apikey=%s", s, av)
+}
+
+func dataGrabber(ticker, boughtprice, numshares, av string) {
+	queryString := buildQueryURL(ticker, av)
+	numShares, _ := strconv.ParseFloat(numshares, 32)
+	boughtPrice, _ := strconv.ParseFloat(boughtprice, 32)
+
+	resp, err := http.Get(queryString)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+	bodyString := fmt.Sprintf("%s", body)
+
+	var data StockData
+	decoder := json.NewDecoder(strings.NewReader(bodyString))
+	err = decoder.Decode(&data)
+	if err != nil {
+		fmt.Println("twas an error")
+		// return
+	}
+
+	price, _ := strconv.ParseFloat(data.GlobalQuote.Price, 32)
+	boughtEquity := numShares * boughtPrice
+	currentEquity := numShares * price
+
+	if currentEquity/boughtEquity > 1.5 {
+		fmt.Println("SELLLLLLLLL")
+	} else {
+		fmt.Println("Stock", ticker, "ain't there yet")
+	}
 }
