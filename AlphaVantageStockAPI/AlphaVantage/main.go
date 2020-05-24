@@ -88,7 +88,7 @@ func main() {
 
 	for _, v := range s3data {
 		dataGrabber(v.Ticker, v.BoughtPrice, v.NumberOfShares, AVkey)
-		// Alpha Vantage limits users to 1 request per 18 seconds
+		// Alpha Vantage limits users to 5 requests per minute (1 per 18 seconds)
 		fmt.Println("Sleeping for 18 seconds")
 		time.Sleep(18 * time.Second)
 	}
