@@ -16,13 +16,15 @@ Output:
 
 class Solution:
     def findDuplicates(self, nums: list[int]) -> list[int]:
-        res = []
-        for x in nums:
-            if nums[abs(x)-1] < 0:
-                res.append(abs(x))
-            else:
-                nums[abs(x)-1] *= -1
-        return res
+        length = len(nums) + 1
+        ctList = [0] * length
+        reList = []
+        for v in nums:
+            ctList[v] += 1
+        for i, x in enumerate(ctList):
+            if x > 1:
+                reList.append(i)
+        return reList
 
 
 tmp = Solution()
