@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -23,7 +24,7 @@ func init() {
 }
 
 func main() {
-	recs := getObjectReturnMaps("SLM0915_inputData_preNCOA.csv", "slm-test-bucket-transactional")
+	recs := getObjectReturnMaps("SLM0916_inputData_preNCOA_subset.csv", "slm-test-bucket-transactional")
 	// recs := getObjectReturnMaps("12345_test.csv", "slm-test-bucket-transactional")
 	show := transformRecordsForProcessing(recs)
 	submitRecords(show)
@@ -33,7 +34,7 @@ func submitRecords(records []map[string]string) {
 	batch := []map[string]string{}
 	batchCt := 1
 	method := "POST"
-	url := "https://app.testing.truencoa.com/api/files/testFileBicc/records"
+	url := "https://app.testing.truencoa.com/api/files/testFileBicc1/records"
 
 	for _, v := range records {
 		batch = append(batch, v)
@@ -48,8 +49,10 @@ func submitRecords(records []map[string]string) {
 				fmt.Println(err)
 			}
 
-			req.Header.Add("user_name")
-			req.Header.Add("password")
+			login, _ := os.LookupEnv("NCOALogin")
+			password, _ := os.LookupEnv("NCOAPassword")
+			req.Header.Add("user_name", login)
+			req.Header.Add("password", password)
 			req.Header.Add("Content-Type", "application/json")
 
 			res, err := client.Do(req)
