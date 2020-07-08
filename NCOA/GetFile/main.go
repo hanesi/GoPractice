@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -17,6 +18,16 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type Response struct {
+	ID          string      `json:"Id"`
+	Status      string      `json:"Status"`
+	Caption     string      `json:"Caption"`
+	Name        string      `json:"Name"`
+	CreateDate  string      `json:"CreateDate"`
+	RecordCount int         `json:"RecordCount"`
+	URL         interface{} `json:"Url"`
+}
+
 func init() {
 	if err := godotenv.Load(); err != nil {
 		log.Print("No .env file found")
@@ -24,29 +35,73 @@ func init() {
 }
 
 func main() {
-	recs := getObjectReturnMaps("SLM0916_inputData_preNCOA_subset.csv", "slm-test-bucket-transactional")
-	// recs := getObjectReturnMaps("12345_test.csv", "slm-test-bucket-transactional")
+	recs := getObjectReturnMaps("SLM0915_inputData_preNCOA_subset100k.csv", "slm-test-bucket-transactional")
 	show := transformRecordsForProcessing(recs)
-	submitRecords(show)
+
+	fileID := createFile("testFileName1")
+	submitRecords(show, fileID)
 }
 
-func submitRecords(records []map[string]string) {
-	batch := []map[string]string{}
-	batchCt := 1
+func submitRecords(records []map[string]string, fileID string) {
+	ch := make(chan []map[string]string)
+	client := &http.Client{}
 	method := "POST"
-	url := "https://app.testing.truencoa.com/api/files/testFileBicc1/records"
+	url := fmt.Sprintf("https://app.testing.truencoa.com/api/files/%s/records", fileID)
 
+	var wg sync.WaitGroup
+	n := 1
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			for b := range ch {
+				str, _ := json.Marshal(b)
+
+				payload := strings.NewReader(string(str))
+				req, err := http.NewRequest(method, url, payload)
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
+
+				login, _ := os.LookupEnv("NCOALogin")
+				password, _ := os.LookupEnv("NCOAPassword")
+				req.Header.Add("user_name", login)
+				req.Header.Add("password", password)
+				req.Header.Add("Content-Type", "application/json")
+
+				res, err := client.Do(req)
+				fmt.Println(res.Status)
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
+				defer res.Body.Close()
+				body, err := ioutil.ReadAll(res.Body)
+				if err != nil {
+					fmt.Println(err)
+				}
+				var responseObject Response
+				json.Unmarshal(body, &responseObject)
+				fmt.Println(responseObject)
+			}
+		}()
+	}
+
+	bLen := 10000
+	batch := []map[string]string{}
+	firstBatch := true
 	for _, v := range records {
 		batch = append(batch, v)
-		if len(batch) == 150 {
+		if firstBatch && len(batch) == bLen {
+			fmt.Println("Sending First Batch!")
 			str, _ := json.Marshal(batch)
-			fmt.Printf("Sending batch at line %d\n", (batchCt * 150))
 
 			payload := strings.NewReader(string(str))
-			client := &http.Client{}
 			req, err := http.NewRequest(method, url, payload)
 			if err != nil {
 				fmt.Println(err)
+				continue
 			}
 
 			login, _ := os.LookupEnv("NCOALogin")
@@ -58,44 +113,64 @@ func submitRecords(records []map[string]string) {
 			res, err := client.Do(req)
 			if err != nil {
 				fmt.Println(err)
+				continue
 			}
 			defer res.Body.Close()
 			body, err := ioutil.ReadAll(res.Body)
 			if err != nil {
 				fmt.Println(err)
 			}
-			fmt.Println(string(body))
 
-			batchCt++
-			batch = nil
+			var responseObject Response
+			json.Unmarshal(body, &responseObject)
+			fmt.Println(responseObject)
+
+			firstBatch = false
+			batch = []map[string]string{}
+		} else if len(batch) == bLen {
+			ch <- batch
+			batch = []map[string]string{}
 		}
 	}
 	if len(batch) > 0 {
-		str, _ := json.Marshal(batch)
-		fmt.Printf("Sending batch at line %d", (batchCt * 150))
-		payload := strings.NewReader(string(str))
-		client := &http.Client{}
-		req, err := http.NewRequest(method, url, payload)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		req.Header.Add("user_name", "ian@sharelocalmedia.com")
-		req.Header.Add("password", "cokkyg-juczuF-8sasqi")
-		req.Header.Add("Content-Type", "application/json")
-
-		res, err := client.Do(req)
-		if err != nil {
-			fmt.Println(err)
-		}
-		defer res.Body.Close()
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println(string(body))
+		ch <- batch
 	}
-	// fmt.Println(batch)
+	close(ch)
+
+	wg.Wait()
+}
+
+func createFile(filename string) string {
+	url := fmt.Sprintf("https://app.testing.truencoa.com/api/files/%s/index", filename)
+	method := "POST"
+	payload := strings.NewReader("caption=This%20should%20be%20the%20file%20caption")
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, payload)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	login, _ := os.LookupEnv("NCOALogin")
+	password, _ := os.LookupEnv("NCOAPassword")
+	req.Header.Add("user_name", login)
+	req.Header.Add("password", password)
+
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	var responseObject Response
+	json.Unmarshal(body, &responseObject)
+	fmt.Println("File Created!")
+	return responseObject.ID
 }
 
 func transformRecordsForProcessing(records []map[string]string) []map[string]string {
@@ -118,6 +193,7 @@ func transformRecordsForProcessing(records []map[string]string) []map[string]str
 
 		transformedRecords = append(transformedRecords, tempDict)
 	}
+	fmt.Println("Records Transformed!")
 	return transformedRecords
 }
 
@@ -148,6 +224,7 @@ func getObjectReturnMaps(key, bucket string) []map[string]string {
 	if err != nil {
 		fmt.Println("Error", err)
 	}
+	fmt.Println("Records Parsed!")
 	return csvToSliceOfMaps(record)
 }
 
