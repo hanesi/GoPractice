@@ -35,7 +35,7 @@ func init() {
 }
 
 func main() {
-	recs := getObjectReturnMaps("SLM0915_inputData_preNCOA_subset100k.csv", "slm-test-bucket-transactional")
+	recs := getObjectReturnMaps("SLM0916_inputData_preNCOA_subset.csv", "slm-test-bucket-transactional")
 	show := transformRecordsForProcessing(recs)
 
 	fileID := createFile("testFileName1")
@@ -49,7 +49,7 @@ func submitRecords(records []map[string]string, fileID string) {
 	url := fmt.Sprintf("https://app.testing.truencoa.com/api/files/%s/records", fileID)
 
 	var wg sync.WaitGroup
-	n := 1
+	n := 4
 	wg.Add(n)
 	for i := 0; i < n; i++ {
 		go func() {
