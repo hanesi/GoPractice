@@ -17,7 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/google/uuid"
 )
 
 type EventResponse struct {
@@ -52,9 +51,10 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		bucket := strings.Split(msgBody, "__")[0]
 		key := strings.Split(msgBody, "__")[1]
 		fileName := strings.Split(msgBody, "__")[2]
+		fileType := strings.Split(msgBody, "__")[3]
 
 		recs := getObjectReturnMaps(key, bucket)
-		transformedRecs := transformRecordsForProcessing(recs)
+		transformedRecs := transformRecordsForProcessing(recs, fileType)
 
 		fileID := createFile(fileName)
 		submitRecords(transformedRecs, fileID)
@@ -193,12 +193,35 @@ func createFile(filename string) string {
 	return responseObject.ID
 }
 
-func transformRecordsForProcessing(records []map[string]string) []map[string]string {
+func transformRecordsForProcessing(records []map[string]string, filetype string) []map[string]string {
 	transformedRecords := []map[string]string{}
+	if filetype == "custom" {
+		for _, v := range records {
+			tempDict := make(map[string]string)
+
+			tempDict["individual_id"] = v["individual_id"]
+			if val, ok := v["firstName"]; ok {
+				tempDict["individual_first_name"] = val
+			}
+			if val, ok := v["lastName"]; ok {
+				tempDict["individual_last_name"] = val
+			}
+			tempDict["address_line_1"] = v["address1"]
+			if val, ok := v["address2"]; ok {
+				tempDict["address_line_2"] = val
+			}
+			tempDict["address_city_name"] = v["city"]
+			tempDict["address_state_code"] = v["state"]
+			tempDict["address_postal_code"] = v["zipcode"]
+			tempDict["address_country_code"] = ""
+
+			transformedRecords = append(transformedRecords, tempDict)
+		}
+		fmt.Println("Records Transformed!")
+		return transformedRecords
+	}
 	for _, v := range records {
 		tempDict := make(map[string]string)
-		indID, _ := uuid.NewRandom()
-		v["individual_id"] = indID.String()
 
 		tempDict["individual_id"] = v["individual_id"]
 		tempDict["individual_first_name"] = v["firstName"]
@@ -209,7 +232,6 @@ func transformRecordsForProcessing(records []map[string]string) []map[string]str
 		tempDict["address_state_code"] = v["state"]
 		tempDict["address_postal_code"] = v["zipcode"]
 		tempDict["address_country_code"] = ""
-		tempDict["MailKey"] = v["MailKey"]
 
 		transformedRecords = append(transformedRecords, tempDict)
 	}
