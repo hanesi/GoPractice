@@ -25,7 +25,7 @@ type message struct {
 	UploadMethod   string `json:"upload_method"`
 	FileType       string `json:"file_type"`
 	PrinterName    string `json:"printer_name"`
-	PrintJobNumber string `json:"print_job_number"`
+	PrintJobNumber string `json:"printer_job_number"`
 	ClientSlug     string `json:"client_slug"`
 	CreatedAt      string `json:"created_at"`
 	UpdatedAt      string `json:"updated_at"`
