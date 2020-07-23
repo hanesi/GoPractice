@@ -48,10 +48,10 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 	for i := range request.Records {
 		msgBody := request.Records[i].Body
 		fmt.Println("Processing file", msgBody)
-		bucket := strings.Split(msgBody, "__")[0]
-		key := strings.Split(msgBody, "__")[1]
-		fileName := strings.Split(msgBody, "__")[2]
-		fileType := strings.Split(msgBody, "__")[3]
+		bucket := strings.Split(msgBody, "___")[0]
+		key := strings.Split(msgBody, "___")[1]
+		fileName := strings.Split(msgBody, "___")[2]
+		fileType := strings.Split(msgBody, "___")[3]
 
 		recs := getObjectReturnMaps(key, bucket)
 		transformedRecs := transformRecordsForProcessing(recs, fileType)
