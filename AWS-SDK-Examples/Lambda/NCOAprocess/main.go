@@ -18,6 +18,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/firehose"
 )
 
+type EventResponse struct {
+	UTC time.Time `json:"utc"`
+}
+
 type Response struct {
 	ID          string      `json:"Id"`
 	Status      string      `json:"Status"`
@@ -176,7 +180,7 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 	resp := &EventResponse{
 		UTC: now.UTC(),
 	}
-	body, err := json.Marshal(resp)
+	bodyLambda, err := json.Marshal(resp)
 	if err != nil {
 		return events.APIGatewayProxyResponse{}, err
 	}
@@ -222,7 +226,7 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 	recordList := download(1, 9998, id)
 
 	submitToFirehose(recordList)
-	return events.APIGatewayProxyResponse{Body: string(body), StatusCode: 200}, nil
+	return events.APIGatewayProxyResponse{Body: string(bodyLambda), StatusCode: 200}, nil
 }
 
 func main() {
