@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	sendSQSMessage("asdgasgasfgaefgeg")
+	sendSQSMessage("9e050ede-a4de-412c-8298-540ca17380d8")
 }
 
 func sendSQSMessage(body string) {
