@@ -7,3 +7,7 @@ AWS-SDK-Examples/Lambda/PostgresCopy/main.zip
 AWS-SDK-Examples/Lambda/PostgresUpdate/main
 AWS-SDK-Examples/Lambda/PostgresUpdate/main.zip
 AWS-SDK-Examples/test/main.go
+AWS-SDK-Examples/Lambda/PostgresTruncate/main
+AWS-SDK-Examples/Lambda/NCOASubmit/main
+*.zip
+processResponse.txt
