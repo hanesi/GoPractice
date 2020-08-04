@@ -17,6 +17,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/google/uuid"
 )
 
 type EventResponse struct {
@@ -57,9 +59,71 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		transformedRecs := transformRecordsForProcessing(recs, fileType)
 
 		fileID := createFile(fileName)
+		fmt.Println("Starting Record Submission")
 		submitRecords(transformedRecs, fileID)
+
+		fmt.Println("Starting Record Validation")
+		startFileValidation(fileID)
 	}
 	return events.APIGatewayProxyResponse{Body: string(body), StatusCode: 200}, nil
+}
+
+func sendSQSMessage(body string) {
+	queueName := "https://sqs.us-east-1.amazonaws.com/363807257486/NCOAValidationPoll.fifo"
+	id := uuid.New().String()
+	sess := session.Must(session.NewSession())
+	// Create a Firehose client with additional configuration
+	queueService := sqs.New(sess, aws.NewConfig().WithRegion("us-east-1"))
+	_, err := queueService.SendMessage(&sqs.SendMessageInput{
+		MessageAttributes: map[string]*sqs.MessageAttributeValue{
+			"MsgBody": &sqs.MessageAttributeValue{
+				DataType:    aws.String("String"),
+				StringValue: aws.String(body),
+			},
+		},
+		MessageBody:    aws.String(body),
+		QueueUrl:       &queueName,
+		MessageGroupId: &id,
+	})
+
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func startFileValidation(fileID string) {
+	url := fmt.Sprintf("https://app.testing.truencoa.com/api/files/%s/index?status=submit", fileID)
+	method := "PATCH"
+
+	payload := strings.NewReader("")
+
+	fmt.Println("defining client and request")
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, payload)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	login := os.Getenv("NCOALogin")
+	password := os.Getenv("NCOAPassword")
+	req.Header.Add("user_name", login)
+	req.Header.Add("password", password)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	fmt.Println("executing request")
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(string(body))
 }
 
 func submitRecords(records []map[string]string, fileID string) {
