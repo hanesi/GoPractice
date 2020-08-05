@@ -64,6 +64,9 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 
 		fmt.Println("Starting Record Validation")
 		startFileValidation(fileID)
+
+		fmt.Println("Sending SQS Message")
+		sendSQSMessage(fileID)
 	}
 	return events.APIGatewayProxyResponse{Body: string(body), StatusCode: 200}, nil
 }
