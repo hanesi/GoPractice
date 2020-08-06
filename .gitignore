@@ -11,3 +11,4 @@ AWS-SDK-Examples/Lambda/PostgresTruncate/main
 AWS-SDK-Examples/Lambda/NCOASubmit/main
 *.zip
 processResponse.txt
+AWS-SDK-Examples/Lambda/NCOAFirehose/main
