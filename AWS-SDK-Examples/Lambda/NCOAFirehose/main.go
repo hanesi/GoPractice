@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -186,51 +187,55 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 	}
 
 	fmt.Println("Recieved event", request)
-	url := "https://app.testing.truencoa.com/api/files/9e050ede-a4de-412c-8298-540ca17380d8/index?status=export&export_template=export_default"
-	method := "PATCH"
+	for i := range request.Records {
+		msgBody := request.Records[i].Body
+		fmt.Println("Processing file", msgBody)
+		id := strings.Split(msgBody, "___")[0]
+		start, _ := strconv.Atoi(strings.Split(msgBody, "___")[1])
+		end, _ := strconv.Atoi(strings.Split(msgBody, "___")[2])
 
-	payload := strings.NewReader("")
+		url := fmt.Sprintf("https://app.testing.truencoa.com/api/files/%s/index?status=export&export_template=export_default", id)
+		method := "PATCH"
 
-	client := &http.Client{}
-	req, err := http.NewRequest(method, url, payload)
+		payload := strings.NewReader("")
 
-	if err != nil {
-		fmt.Println(err)
+		client := &http.Client{}
+		req, err := http.NewRequest(method, url, payload)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+		login, _ := os.LookupEnv("NCOALogin")
+		password, _ := os.LookupEnv("NCOAPassword")
+		req.Header.Add("user_name", login)
+		req.Header.Add("password", password)
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+		res, err := client.Do(req)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		defer res.Body.Close()
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		fmt.Println(body)
+
+		var responseObject Response
+		json.Unmarshal(body, &responseObject)
+		fmt.Println(responseObject)
+
+		exportid := responseObject.ID
+		// id := "e6007939-8f01-4875-a8e1-304ad81955a9"
+
+		recordList := download(start, end, exportid)
+
+		submitToFirehose(recordList)
 	}
-	login, _ := os.LookupEnv("NCOALogin")
-	password, _ := os.LookupEnv("NCOAPassword")
-	req.Header.Add("user_name", login)
-	req.Header.Add("password", password)
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	res, err := client.Do(req)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Println(body)
-
-	var responseObject Response
-	json.Unmarshal(body, &responseObject)
-	fmt.Println(responseObject)
-
-	id := responseObject.ID
-	// id := "e6007939-8f01-4875-a8e1-304ad81955a9"
-
-	recordList := download(1, 9998, id)
-
-	submitToFirehose(recordList)
 	return events.APIGatewayProxyResponse{Body: string(bodyLambda), StatusCode: 200}, nil
-}
-
-func main() {
-	lambda.Start(handleRequest)
 }
 
 func submitToFirehose(records []ProcessedRecords) {
@@ -320,4 +325,8 @@ func download(start, max int, id string) []ProcessedRecords {
 		start += 1000
 	}
 	return retList
+}
+
+func main() {
+	lambda.Start(handleRequest)
 }
