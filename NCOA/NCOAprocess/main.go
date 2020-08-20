@@ -9,7 +9,7 @@ import (
 
 func main() {
 
-	url := "https://app.testing.truencoa.com/api/files/989c1c39-4c4e-4789-8dde-ef9a04e47c88/index?status=submit"
+	url := "https://app.testing.truencoa.com/api/files/9e050ede-a4de-412c-8298-540ca17380d8/index?status=submit"
 	method := "PATCH"
 
 	payload := strings.NewReader("")
@@ -22,8 +22,8 @@ func main() {
 		fmt.Println(err)
 	}
 	fmt.Println("adding headers")
-	req.Header.Add("user_name", "")
-	req.Header.Add("password", "")
+	req.Header.Add("user_name", "ian@sharelocalmedia.com")
+	req.Header.Add("password", "cokkyg-juczuF-8sasqi")
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	fmt.Println("executing request")

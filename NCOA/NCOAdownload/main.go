@@ -167,7 +167,7 @@ type ProcessedRecordsReturn struct {
 }
 
 func main() {
-	url := "https://app.testing.truencoa.com/api/files/9e050ede-a4de-412c-8298-540ca17380d8/index?status=export&export_template=export_default"
+	url := "https://app.testing.truencoa.com/api/files/e9c3558c-536c-4a71-a7c4-0695c3016d46/index?status=export&export_template=export_default"
 	method := "PATCH"
 
 	payload := strings.NewReader("")
@@ -178,8 +178,8 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	req.Header.Add("user_name", "")
-	req.Header.Add("password", "")
+	req.Header.Add("user_name", "ian@sharelocalmedia.com")
+	req.Header.Add("password", "cokkyg-juczuF-8sasqi")
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	res, err := client.Do(req)
@@ -269,8 +269,8 @@ func download(start, max int, id string) []ProcessedRecords {
 		if err != nil {
 			fmt.Println(err)
 		}
-		req.Header.Add("user_name", "")
-		req.Header.Add("password", "")
+		req.Header.Add("user_name", "ian@sharelocalmedia.com")
+		req.Header.Add("password", "cokkyg-juczuF-8sasqi")
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 		res, err := client.Do(req)

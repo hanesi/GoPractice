@@ -190,49 +190,54 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 	for i := range request.Records {
 		msgBody := request.Records[i].Body
 		fmt.Println("Processing file", msgBody)
-		id := strings.Split(msgBody, "___")[0]
+		exportid := strings.Split(msgBody, "___")[0]
 		start, _ := strconv.Atoi(strings.Split(msgBody, "___")[1])
 		end, _ := strconv.Atoi(strings.Split(msgBody, "___")[2])
 
-		url := fmt.Sprintf("https://app.testing.truencoa.com/api/files/%s/index?status=export&export_template=export_default", id)
-		method := "PATCH"
+		// url := fmt.Sprintf("https://app.testing.truencoa.com/api/files/%s/index?status=export&export_template=export_default", id)
+		// method := "PATCH"
+		//
+		// payload := strings.NewReader("")
+		//
+		// client := &http.Client{}
+		// req, err := http.NewRequest(method, url, payload)
+		//
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
+		// login, _ := os.LookupEnv("NCOALogin")
+		// password, _ := os.LookupEnv("NCOAPassword")
+		// req.Header.Add("user_name", login)
+		// req.Header.Add("password", password)
+		// req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		//
+		// fmt.Println("Starting export...")
+		// res, err := client.Do(req)
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
+		//
+		// defer res.Body.Close()
+		// body, err := ioutil.ReadAll(res.Body)
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
+		//
+		// fmt.Println("Export Body Response: ", string(body))
+		//
+		// var responseObject Response
+		// json.Unmarshal(body, &responseObject)
+		// fmt.Println("Response Body:")
+		// fmt.Println(responseObject)
 
-		payload := strings.NewReader("")
+		// exportid := responseObject.ID
+		fmt.Println("Export ID:", exportid)
+		// exportid := "6165c142-2900-4095-a62a-d9fcaca76c9c"
 
-		client := &http.Client{}
-		req, err := http.NewRequest(method, url, payload)
-
-		if err != nil {
-			fmt.Println(err)
-		}
-		login, _ := os.LookupEnv("NCOALogin")
-		password, _ := os.LookupEnv("NCOAPassword")
-		req.Header.Add("user_name", login)
-		req.Header.Add("password", password)
-		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-		res, err := client.Do(req)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		defer res.Body.Close()
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		fmt.Println(body)
-
-		var responseObject Response
-		json.Unmarshal(body, &responseObject)
-		fmt.Println(responseObject)
-
-		exportid := responseObject.ID
-		// id := "e6007939-8f01-4875-a8e1-304ad81955a9"
-
+		fmt.Println("Starting Download...")
 		recordList := download(start, end, exportid)
 
+		fmt.Println("Submitting Records to Firehose...")
 		submitToFirehose(recordList)
 	}
 	return events.APIGatewayProxyResponse{Body: string(bodyLambda), StatusCode: 200}, nil
@@ -253,10 +258,23 @@ func submitToFirehose(records []ProcessedRecords) {
 		if len(recordsInput) == 500 {
 			recordsBatchInput = recordsBatchInput.SetRecords(recordsInput)
 			resp, err := firehoseService.PutRecordBatch(recordsBatchInput)
+			num_failures := *resp.FailedPutCount
 			if err != nil {
 				fmt.Printf("PutRecordBatch err: %v\n", err)
 			} else {
-				fmt.Printf("FailedPuts: %v\n", *resp.FailedPutCount)
+				fmt.Printf("FailedPuts: %v\n", num_failures)
+				if num_failures > 0 {
+					rec_index := 0
+					for _, v := range resp.RequestResponses {
+						if v.ErrorCode != nil {
+							recInput := &firehose.PutRecordInput{}
+							recInput = recInput.SetDeliveryStreamName(streamName)
+							recInput = recInput.SetRecord(recordsInput[rec_index])
+							_, _ = firehoseService.PutRecord(recInput)
+						}
+						rec_index++
+					}
+				}
 			}
 			recordsInput = []*firehose.Record{}
 		}
@@ -275,10 +293,23 @@ func submitToFirehose(records []ProcessedRecords) {
 	if len(recordsInput) > 0 {
 		recordsBatchInput = recordsBatchInput.SetRecords(recordsInput)
 		resp, err := firehoseService.PutRecordBatch(recordsBatchInput)
+		num_failures := *resp.FailedPutCount
 		if err != nil {
 			fmt.Printf("PutRecordBatch err: %v\n", err)
 		} else {
-			fmt.Printf("FailedPuts: %v\n", *resp.FailedPutCount)
+			fmt.Printf("FailedPuts: %v\n", num_failures)
+			if num_failures > 0 {
+				rec_index := 0
+				for _, v := range resp.RequestResponses {
+					if v.ErrorCode != nil {
+						recInput := &firehose.PutRecordInput{}
+						recInput = recInput.SetDeliveryStreamName(streamName)
+						recInput = recInput.SetRecord(recordsInput[rec_index])
+						_, _ = firehoseService.PutRecord(recInput)
+					}
+					rec_index++
+				}
+			}
 		}
 	}
 }
@@ -307,6 +338,7 @@ func download(start, max int, id string) []ProcessedRecords {
 		req.Header.Add("password", password)
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
+		fmt.Println("Executing Download Request...")
 		res, err := client.Do(req)
 		if err != nil {
 			fmt.Println(err)

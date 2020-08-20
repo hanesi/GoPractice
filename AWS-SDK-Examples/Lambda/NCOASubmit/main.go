@@ -57,6 +57,7 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 
 		recs := getObjectReturnMaps(key, bucket)
 		transformedRecs := transformRecordsForProcessing(recs, fileType)
+		fmt.Println(transformedRecs[0])
 
 		fileID := createFile(fileName)
 		fmt.Println("Starting Record Submission")
@@ -273,8 +274,14 @@ func transformRecordsForProcessing(records []map[string]string, filetype string)
 			if val, ok := v["lastName"]; ok {
 				tempDict["individual_last_name"] = val
 			}
-			tempDict["address_line_1"] = v["address1"]
+			if val, ok := v["primaryAddress"]; ok {
+				tempDict["address_line_1"] = val
+			} else {
+				tempDict["address_line_1"] = v["address1"]
+			}
 			if val, ok := v["address2"]; ok {
+				tempDict["address_line_2"] = val
+			} else if val, ok := v["secondaryAddress"]; ok {
 				tempDict["address_line_2"] = val
 			}
 			tempDict["address_city_name"] = v["city"]
