@@ -50,13 +50,24 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 	for i := range request.Records {
 		msgBody := request.Records[i].Body
 		fmt.Println("Processing file", msgBody)
-		bucket := strings.Split(msgBody, "___")[0]
-		key := strings.Split(msgBody, "___")[1]
-		fileName := strings.Split(msgBody, "___")[2]
-		fileType := strings.Split(msgBody, "___")[3]
+		fmt.Printf("%T\n", msgBody)
+		jsonString := strings.ReplaceAll(msgBody, "'", "\"")
 
-		recs := getObjectReturnMaps(key, bucket)
-		transformedRecs := transformRecordsForProcessing(recs, fileType)
+		var expectedStringArray []string
+		json.Unmarshal([]byte(jsonString), &expectedStringArray)
+
+		var transformedRecs []map[string]string
+		var fileName string
+		for _, v := range expectedStringArray {
+			bucket := strings.Split(v, "___")[0]
+			key := strings.Split(v, "___")[1]
+			fileName = strings.Split(v, "___")[2]
+			fileType := strings.Split(v, "___")[3]
+
+			recs := getObjectReturnMaps(key, bucket)
+			transformedRecs = append(transformedRecs, transformRecordsForProcessing(recs, fileType)...)
+		}
+
 		fmt.Println(transformedRecs[0])
 
 		fileID := createFile(fileName)
