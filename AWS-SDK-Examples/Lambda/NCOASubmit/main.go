@@ -58,14 +58,17 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 
 		var transformedRecs []map[string]string
 		var fileName string
+		var slmIDs []string
 		for _, v := range expectedStringArray {
 			bucket := strings.Split(v, "___")[0]
 			key := strings.Split(v, "___")[1]
 			fileName = strings.Split(v, "___")[2]
 			fileType := strings.Split(v, "___")[3]
+			slm_file_id := strings.Split(v, "___")[4]
 
+			slmIDs = append(slmIDs, slm_file_id)
 			recs := getObjectReturnMaps(key, bucket)
-			transformedRecs = append(transformedRecs, transformRecordsForProcessing(recs, fileType)...)
+			transformedRecs = append(transformedRecs, transformRecordsForProcessing(recs, fileType, slm_file_id)...)
 		}
 
 		fmt.Println(transformedRecs[0])
@@ -77,8 +80,10 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		fmt.Println("Starting Record Validation")
 		startFileValidation(fileID)
 
+		bodySl := append([]string{fileID}, slmIDs...)
+		bodyMsg := strings.Join(bodySl, "___")
 		fmt.Println("Sending SQS Message")
-		sendSQSMessage(fileID)
+		sendSQSMessage(bodyMsg)
 	}
 	return events.APIGatewayProxyResponse{Body: string(body), StatusCode: 200}, nil
 }
@@ -272,7 +277,7 @@ func createFile(filename string) string {
 	return responseObject.ID
 }
 
-func transformRecordsForProcessing(records []map[string]string, filetype string) []map[string]string {
+func transformRecordsForProcessing(records []map[string]string, filetype, slm_id string) []map[string]string {
 	transformedRecords := []map[string]string{}
 	if filetype == "custom" {
 		for _, v := range records {
@@ -299,6 +304,7 @@ func transformRecordsForProcessing(records []map[string]string, filetype string)
 			tempDict["address_state_code"] = v["state"]
 			tempDict["address_postal_code"] = v["zipcode"]
 			tempDict["address_country_code"] = ""
+			tempDict["slm_file_id"] = slm_id
 
 			transformedRecords = append(transformedRecords, tempDict)
 		}
@@ -317,6 +323,7 @@ func transformRecordsForProcessing(records []map[string]string, filetype string)
 		tempDict["address_state_code"] = v["state"]
 		tempDict["address_postal_code"] = v["zipcode"]
 		tempDict["address_country_code"] = ""
+		tempDict["slm_file_id"] = slm_id
 
 		transformedRecords = append(transformedRecords, tempDict)
 	}

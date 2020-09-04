@@ -29,6 +29,7 @@ type message struct {
 	ClientSlug     string `json:"client_slug"`
 	CreatedAt      string `json:"created_at"`
 	UpdatedAt      string `json:"updated_at"`
+	SLMID          string `json:"slmID"`
 }
 
 func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGatewayProxyResponse, error) {
@@ -55,8 +56,8 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 	for i := range request.Records {
 		msgBody := request.Records[i].Body
 		fmt.Println("Processing file", msgBody)
-		queryMethod := strings.Split(msgBody, "__")[0]
-		fieldDict := strings.Split(msgBody, "__")[1]
+		queryMethod := strings.Split(msgBody, "___")[0]
+		fieldDict := strings.Split(msgBody, "___")[1]
 
 		db, err := sql.Open("postgres", pgConString)
 		if err != nil {
@@ -73,7 +74,7 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		var sqlStatement string
 		switch queryMethod {
 		case "insert":
-			sqlStatement = fmt.Sprintf(`INSERT INTO slm_files VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s');`,
+			sqlStatement = fmt.Sprintf(`INSERT INTO slm_files VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s');`,
 				body.ID,
 				body.Filename,
 				body.Status,
@@ -84,6 +85,7 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 				body.ClientSlug,
 				body.CreatedAt,
 				body.UpdatedAt,
+				body.SLMID,
 			)
 		case "update", "update error":
 			sqlStatement = fmt.Sprintf(`UPDATE slm_files SET status = '%s', updated_at = '%s' where filename = '%s';`,
@@ -98,6 +100,12 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 				body.PrintJobNumber,
 				body.ClientSlug,
 				body.Filename,
+			)
+		case "update_ncoa":
+			sqlStatement = fmt.Sprintf(`UPDATE slm_files SET status = '%s', updated_at = '%s', where id = '%s';`,
+				body.Status,
+				body.UpdatedAt,
+				body.ID,
 			)
 		}
 		fmt.Println(sqlStatement)
