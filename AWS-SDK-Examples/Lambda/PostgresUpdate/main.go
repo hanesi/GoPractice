@@ -102,7 +102,7 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 				body.Filename,
 			)
 		case "update_ncoa":
-			sqlStatement = fmt.Sprintf(`UPDATE slm_files SET status = '%s', updated_at = '%s', where id = '%s';`,
+			sqlStatement = fmt.Sprintf(`UPDATE slm_files SET status = '%s', updated_at = '%s' where id = '%s';`,
 				body.Status,
 				body.UpdatedAt,
 				body.ID,
