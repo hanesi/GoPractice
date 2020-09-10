@@ -39,19 +39,19 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		"password=%s dbname=%s sslmode=disable",
 		port, host, user, password, dbname)
 
+	db, err := sql.Open("postgres", pgConString)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Connected Successfully")
+	defer db.Close()
+
 	for i := range request.Records {
 		msgBody := request.Records[i].Body
 		fmt.Println("Processing file", msgBody)
 		bucket := strings.Split(msgBody, ",")[0]
 		key := strings.Split(msgBody, ",")[1]
 		table := strings.Split(key, "/")[0]
-
-		db, err := sql.Open("postgres", pgConString)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println("Connected Successfully")
-		defer db.Close()
 
 		sqlStatement := `
 							select aws_s3.table_import_from_s3(
