@@ -285,14 +285,18 @@ func transformRecordsForProcessing(records []map[string]string, filetype, slm_id
 
 			tempDict["individual_id"] = v["individual_id"]
 			var fn, ln string
-			if val, ok := v["full_name"]; ok {
+			if val, ok := v["full_name"]; ok && len(val) > 0 {
 				tempDict["individual_full_name"] = val
 			} else {
-				if val, ok := v["firstName"]; ok {
+				if val, ok := v["first_name"]; ok {
 					fn = val
+				} else {
+					fn = ""
 				}
-				if val, ok := v["lastName"]; ok {
+				if val, ok := v["last_name"]; ok {
 					ln = val
+				} else {
+					ln = ""
 				}
 				tempDict["individual_full_name"] = fmt.Sprintf("%s %s", fn, ln)
 			}
