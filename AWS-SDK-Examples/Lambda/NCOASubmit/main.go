@@ -284,12 +284,19 @@ func transformRecordsForProcessing(records []map[string]string, filetype, slm_id
 			tempDict := make(map[string]string)
 
 			tempDict["individual_id"] = v["individual_id"]
-			if val, ok := v["firstName"]; ok {
-				tempDict["individual_first_name"] = val
+			var fn, ln string
+			if val, ok := v["full_name"]; ok {
+				tempDict["individual_full_name"] = val
+			} else {
+				if val, ok := v["firstName"]; ok {
+					fn = val
+				}
+				if val, ok := v["lastName"]; ok {
+					ln = val
+				}
+				tempDict["individual_full_name"] = fmt.Sprintf("%s %s", fn, ln)
 			}
-			if val, ok := v["lastName"]; ok {
-				tempDict["individual_last_name"] = val
-			}
+
 			if val, ok := v["primaryAddress"]; ok {
 				tempDict["address_line_1"] = val
 			} else {
@@ -315,8 +322,9 @@ func transformRecordsForProcessing(records []map[string]string, filetype, slm_id
 		tempDict := make(map[string]string)
 
 		tempDict["individual_id"] = v["individual_id"]
-		tempDict["individual_first_name"] = v["firstName"]
-		tempDict["individual_last_name"] = v["lastName"]
+		// tempDict["individual_first_name"] = v["firstName"]
+		// tempDict["individual_last_name"] = v["lastName"]
+		tempDict["individual_full_name"] = fmt.Sprintf("%s %s", v["firstName"], v["lastName"])
 		tempDict["address_line_1"] = v["primaryAddress"]
 		tempDict["address_line_2"] = ""
 		tempDict["address_city_name"] = v["city"]
