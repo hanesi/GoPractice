@@ -112,7 +112,7 @@ func sendSQSMessage(body string) {
 }
 
 func startFileValidation(fileID string) {
-	url := fmt.Sprintf("https://app.testing.truencoa.com/api/files/%s/index?status=submit", fileID)
+	url := fmt.Sprintf("https://app.truencoa.com/api/files/%s/index?status=submit", fileID)
 	method := "PATCH"
 
 	payload := strings.NewReader("")
@@ -150,7 +150,7 @@ func submitRecords(records []map[string]string, fileID string) {
 	ch := make(chan []map[string]string)
 	client := &http.Client{}
 	method := "POST"
-	url := fmt.Sprintf("https://app.testing.truencoa.com/api/files/%s/records", fileID)
+	url := fmt.Sprintf("https://app.truencoa.com/api/files/%s/records", fileID)
 
 	var wg sync.WaitGroup
 	n := 4
@@ -245,7 +245,7 @@ func submitRecords(records []map[string]string, fileID string) {
 }
 
 func createFile(filename string) string {
-	url := fmt.Sprintf("https://app.testing.truencoa.com/api/files/%s/index", filename)
+	url := fmt.Sprintf("https://app.truencoa.com/api/files/%s/index", filename)
 	method := "POST"
 	payload := strings.NewReader("caption=This%20should%20be%20the%20file%20caption")
 

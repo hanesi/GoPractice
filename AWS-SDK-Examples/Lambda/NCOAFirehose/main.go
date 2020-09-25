@@ -322,7 +322,7 @@ func download(start, max int, id string) []ProcessedRecords {
 		if interval > max {
 			interval = max
 		}
-		url := fmt.Sprintf("https://app.testing.truencoa.com/api/files/%s/records?start=%d&end=%d", id, start, interval)
+		url := fmt.Sprintf("https://app.truencoa.com/api/files/%s/records?start=%d&end=%d", id, start, interval)
 		method := "GET"
 		fmt.Println(url)
 
