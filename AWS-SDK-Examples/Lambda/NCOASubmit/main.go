@@ -312,7 +312,11 @@ func transformRecordsForProcessing(records []map[string]string, filetype, slm_id
 				tempDict["address_line_2"] = val
 			}
 			tempDict["address_city_name"] = v["city"]
-			tempDict["address_state_code"] = v["state"]
+			if len(v["state"]) > 2 {
+				tempDict["address_state_code"] = ""
+			} else {
+				tempDict["address_state_code"] = v["state"]
+			}
 			tempDict["address_postal_code"] = v["zipcode"]
 			tempDict["address_country_code"] = ""
 			tempDict["slm_file_id"] = slm_id
@@ -332,7 +336,11 @@ func transformRecordsForProcessing(records []map[string]string, filetype, slm_id
 		tempDict["address_line_1"] = v["primaryAddress"]
 		tempDict["address_line_2"] = ""
 		tempDict["address_city_name"] = v["city"]
-		tempDict["address_state_code"] = v["state"]
+		if len(v["state"]) > 2 {
+			tempDict["address_state_code"] = ""
+		} else {
+			tempDict["address_state_code"] = v["state"]
+		}
 		tempDict["address_postal_code"] = v["zipcode"]
 		tempDict["address_country_code"] = ""
 		tempDict["slm_file_id"] = slm_id
