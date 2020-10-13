@@ -59,12 +59,14 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		var transformedRecs []map[string]string
 		var fileName string
 		var slmIDs []string
+		var campaign_id string
 		for _, v := range expectedStringArray {
 			bucket := strings.Split(v, "___")[0]
 			key := strings.Split(v, "___")[1]
 			fileName = strings.Split(v, "___")[2]
 			fileType := strings.Split(v, "___")[3]
 			slm_file_id := strings.Split(v, "___")[4]
+			campaign_id = strings.Split(v, "___")[5]
 
 			slmIDs = append(slmIDs, slm_file_id)
 			recs := getObjectReturnMaps(key, bucket)
@@ -80,7 +82,7 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		fmt.Println("Starting Record Validation")
 		startFileValidation(fileID)
 
-		bodySl := append([]string{fileID}, slmIDs...)
+		bodySl := append([]string{fileID, campaign_id}, slmIDs...)
 		bodyMsg := strings.Join(bodySl, "___")
 		fmt.Println("Sending SQS Message")
 		sendSQSMessage(bodyMsg)

@@ -70,6 +70,8 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 			sqlStatement = fmt.Sprintf(sqlStatement, "orders", bucket, key)
 		case table == "Holdouts":
 			sqlStatement = fmt.Sprintf(sqlStatement, "holdouts", bucket, key)
+		case table == "Reports":
+			sqlStatement = fmt.Sprintf(sqlStatement, "reports", bucket, key)
 		}
 
 		_, err = db.Query(sqlStatement)

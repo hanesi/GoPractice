@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/firehose"
+	Lambda "github.com/aws/aws-sdk-go/service/lambda"
 )
 
 type EventResponse struct {
@@ -187,55 +188,22 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 	}
 
 	fmt.Println("Recieved event", request)
+	var ncoa_id string
+	var campaign_id string
 	for i := range request.Records {
 		msgBody := request.Records[i].Body
 		fmt.Println("Processing file", msgBody)
 		exportid := strings.Split(msgBody, "___")[0]
 		start, _ := strconv.Atoi(strings.Split(msgBody, "___")[1])
 		end, _ := strconv.Atoi(strings.Split(msgBody, "___")[2])
+		ncoa_id = strings.Split(msgBody, "___")[3]
+		campaign_id = strings.Split(msgBody, "___")[4]
 
-		// url := fmt.Sprintf("https://app.testing.truencoa.com/api/files/%s/index?status=export&export_template=export_default", id)
-		// method := "PATCH"
-		//
-		// payload := strings.NewReader("")
-		//
-		// client := &http.Client{}
-		// req, err := http.NewRequest(method, url, payload)
-		//
-		// if err != nil {
-		// 	fmt.Println(err)
-		// }
-		// login, _ := os.LookupEnv("NCOALogin")
-		// password, _ := os.LookupEnv("NCOAPassword")
-		// req.Header.Add("user_name", login)
-		// req.Header.Add("password", password)
-		// req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-		//
-		// fmt.Println("Starting export...")
-		// res, err := client.Do(req)
-		// if err != nil {
-		// 	fmt.Println(err)
-		// }
-		//
-		// defer res.Body.Close()
-		// body, err := ioutil.ReadAll(res.Body)
-		// if err != nil {
-		// 	fmt.Println(err)
-		// }
-		//
-		// fmt.Println("Export Body Response: ", string(body))
-		//
-		// var responseObject Response
-		// json.Unmarshal(body, &responseObject)
-		// fmt.Println("Response Body:")
-		// fmt.Println(responseObject)
-
-		// exportid := responseObject.ID
 		fmt.Println("Export ID:", exportid)
 		// exportid := "6165c142-2900-4095-a62a-d9fcaca76c9c"
 
 		fmt.Println("Starting Download...")
-		recordList := download(start, end, exportid)
+		recordList := download(start, end, exportid, ncoa_id, campaign_id)
 
 		fmt.Println("Submitting Records to Firehose...")
 		submitToFirehose(recordList)
@@ -314,7 +282,8 @@ func submitToFirehose(records []ProcessedRecords) {
 	}
 }
 
-func download(start, max int, id string) []ProcessedRecords {
+func download(start, max int, id, ncoaID, campaignID string) []ProcessedRecords {
+	firstBatch := true
 	var interval int
 	var retList []ProcessedRecords
 	for interval < max {
@@ -353,10 +322,40 @@ func download(start, max int, id string) []ProcessedRecords {
 		json.Unmarshal(body, &responseObject)
 
 		retList = append(retList, responseObject.Records...)
+		if firstBatch == true && campaignID != "DontSend" {
+			lambdaInvoke(ncoaID, campaignID)
+
+			firstBatch = false
+		}
 
 		start += 1000
 	}
 	return retList
+}
+
+func lambdaInvoke(ncoaID, campaignID string) {
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+
+	client := Lambda.New(sess, &aws.Config{Region: aws.String("us-east-1")})
+
+	body, err := json.Marshal(map[string]interface{}{
+		"ncoaID":      ncoaID,
+		"campaign_id": campaignID,
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	result, err := client.Invoke(&Lambda.InvokeInput{FunctionName: aws.String("NCOAReportExporter"), Payload: body})
+	if err != nil {
+		fmt.Println("Error calling NCOAReportExporter")
+	}
+
+	fmt.Println(result)
+
+	// return resp, nil
 }
 
 func main() {
