@@ -190,6 +190,7 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 	fmt.Println("Recieved event", request)
 	var ncoa_id string
 	var campaign_id string
+	var groupFile string
 	for i := range request.Records {
 		msgBody := request.Records[i].Body
 		fmt.Println("Processing file", msgBody)
@@ -197,13 +198,14 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		start, _ := strconv.Atoi(strings.Split(msgBody, "___")[1])
 		end, _ := strconv.Atoi(strings.Split(msgBody, "___")[2])
 		ncoa_id = strings.Split(msgBody, "___")[3]
-		campaign_id = strings.Split(msgBody, "___")[4]
+		groupFile = strings.Split(msgBody, "___")[4]
+		campaign_id = strings.Split(msgBody, "___")[5]
 
 		fmt.Println("Export ID:", exportid)
 		// exportid := "6165c142-2900-4095-a62a-d9fcaca76c9c"
 
 		fmt.Println("Starting Download...")
-		recordList := download(start, end, exportid, ncoa_id, campaign_id)
+		recordList := download(start, end, exportid, ncoa_id, campaign_id, groupFile)
 
 		fmt.Println("Submitting Records to Firehose...")
 		submitToFirehose(recordList)
@@ -282,7 +284,7 @@ func submitToFirehose(records []ProcessedRecords) {
 	}
 }
 
-func download(start, max int, id, ncoaID, campaignID string) []ProcessedRecords {
+func download(start, max int, id, ncoaID, campaignID, groupFile string) []ProcessedRecords {
 	firstBatch := true
 	var interval int
 	var retList []ProcessedRecords
@@ -323,7 +325,7 @@ func download(start, max int, id, ncoaID, campaignID string) []ProcessedRecords 
 
 		retList = append(retList, responseObject.Records...)
 		if firstBatch == true && campaignID != "DontSend" {
-			lambdaInvoke(ncoaID, campaignID)
+			lambdaInvoke(ncoaID, campaignID, groupFile)
 
 			firstBatch = false
 		}
@@ -333,7 +335,7 @@ func download(start, max int, id, ncoaID, campaignID string) []ProcessedRecords 
 	return retList
 }
 
-func lambdaInvoke(ncoaID, campaignID string) {
+func lambdaInvoke(ncoaID, campaignID, groupFile string) {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
@@ -343,6 +345,7 @@ func lambdaInvoke(ncoaID, campaignID string) {
 	body, err := json.Marshal(map[string]interface{}{
 		"ncoaID":      ncoaID,
 		"campaign_id": campaignID,
+		"groupFile":   groupFile,
 	})
 	if err != nil {
 		fmt.Println(err)

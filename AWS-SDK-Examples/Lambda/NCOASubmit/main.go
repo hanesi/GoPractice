@@ -82,7 +82,7 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 		fmt.Println("Starting Record Validation")
 		startFileValidation(fileID)
 
-		bodySl := append([]string{fileID, campaign_id}, slmIDs...)
+		bodySl := append([]string{fileID, campaign_id, fileName}, slmIDs...)
 		bodyMsg := strings.Join(bodySl, "___")
 		fmt.Println("Sending SQS Message")
 		sendSQSMessage(bodyMsg)
