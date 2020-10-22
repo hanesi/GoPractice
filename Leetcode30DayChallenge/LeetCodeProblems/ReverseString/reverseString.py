@@ -14,13 +14,15 @@ Input: ["h","e","l","l","o"]
 Output: ["o","l","l","e","h"]
 """
 
+
 class Solution:
-    def reverseString(self, s: List[str]) -> None:
+    def reverseString(self, s: list[str]) -> None:
         """
         Do not return anything, modify s in-place instead.
         """
         s[:] = s[::-1]
         return
 
-tmp = Solition()
+
+tmp = Solution()
 print(tmp.reverseString(['o', 'l', 'l', 'e', 'h']))
