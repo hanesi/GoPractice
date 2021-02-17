@@ -11,6 +11,9 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/glue"
 	_ "github.com/lib/pq"
 )
 
@@ -79,9 +82,28 @@ func handleRequest(ctx context.Context, request events.SQSEvent) (events.APIGate
 			fmt.Println("Failed to run query", err)
 			return events.APIGatewayProxyResponse{Body: "Query Failed To Run", StatusCode: 400}, err
 		}
+		sendToRedshift(table, key)
 	}
 	fmt.Println("Query executed!")
 	return events.APIGatewayProxyResponse{Body: string(body), StatusCode: 200}, nil
+}
+
+func sendToRedshift(table, key string) {
+	sess := session.Must(session.NewSession())
+	// Create a Firehose client with additional configuration
+	glueService := glue.New(sess, aws.NewConfig().WithRegion("us-east-1"))
+
+	startInput := &glue.StartJobRunInput{}
+	job := "TX-HoldoutToRedshift"
+	args := map[string]*string{}
+
+	args["--filetype"] = &table
+	args["--pdp"] = &key
+
+	startInput.JobName = &job
+	startInput.Arguments = args
+
+	glueService.StartJobRun(startInput)
 }
 
 func main() {
